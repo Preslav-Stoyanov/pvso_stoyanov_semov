@@ -1,8 +1,16 @@
+from ximea import xiapi
 import cv2
 import numpy
 import os
 
-cap = cv2.VideoCapture(0) 
+cam = xiapi.Camera()
+cam.open_device() 
+cam.set_exposure(50000)
+cam.set_param("imgdataformat", "XI_RGB24")
+cam.set_param("auto_wb", 1)
+
+img = xiapi.Image()
+cam.start_acquisition()
 
 if not os.path.exists("images"):
     os.makedirs("images")
@@ -13,10 +21,10 @@ captured = []
 currentlyCaptured = 0
 
 while currentlyCaptured < 4:
-    success, frame = cap.read()
-    if not success: break
+    cam.get_image(img)
+    frame = img.get_image_data_numpy()
     
-    frame = cv2.resize(frame, (300, 300))
+    frame = cv2.resize(frame, (240, 240))
     cv2.imshow("Camera", frame)
     
     key = cv2.waitKey(1)
@@ -30,10 +38,11 @@ while currentlyCaptured < 4:
     elif key == ord('q'):
         break
 
-cap.release()
+cam.stop_acquisition()
+cam.close_device()
 
 if currentlyCaptured == 4:
-    h, w = 300, 300
+    h, w = 240, 240
     mosaic = numpy.zeros((h*2, w*2, 3), dtype=numpy.uint8)
     
     mosaic[0:h, 0:w] = captured[0]      
