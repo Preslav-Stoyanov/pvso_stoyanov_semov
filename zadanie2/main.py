@@ -32,8 +32,7 @@ print("Press 'C' to start calibration.")
 while True:
     cam.get_image(img)
     frame_rgb = img.get_image_data_numpy()
-    
-    frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+    frame = cv2.resize(frame_rgb, (616, 514))
     
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     ret_chess, corners = cv2.findChessboardCorners(gray, chessboard_size, None)
@@ -70,7 +69,7 @@ print("\nStarting Real-time Task... Press 'Q' to quit.")
 while True:
     cam.get_image(img)
     frame_rgb = img.get_image_data_numpy()
-    frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+    frame = cv2.resize(frame_rgb, (616, 514))
 
     undistorted = cv2.undistort(frame, mtx, dist)
 
