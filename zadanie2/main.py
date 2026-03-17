@@ -12,60 +12,68 @@ cam.set_param("auto_wb", 1)
 img = xiapi.Image()
 cam.start_acquisition()
 
+matrix_path = "results/camera_matrix.npy"
+dist_path = "results/dist_coeffs.npy"
+
 for folder in ["calibration_images", "results"]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-chessboard_size = (7, 5) 
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+if os.path.exists(matrix_path) and os.path.exists(dist_path):
+    mtx = numpy.load(matrix_path)
+    dist = numpy.load(dist_path)
+    run_calibration = False
+else:
+    run_calibration = True
 
-objp = numpy.zeros((chessboard_size[0] * chessboard_size[1], 3), numpy.float32)
-objp[:, :2] = numpy.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
-
-objpoints = [] 
-imgpoints = [] 
-captured = 0
-
-print("Press SPACE to capture.")
-print("Press 'C' to start calibration.")
-
-while True:
-    cam.get_image(img)
-    frame_rgb = img.get_image_data_numpy()
-    frame = cv2.resize(frame_rgb, (616, 514))
+if run_calibration:
+    chessboard_size = (7, 5)
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    objp = numpy.zeros((chessboard_size[0] * chessboard_size[1], 3), numpy.float32)
+    objp[:, :2] = numpy.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
     
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    ret_chess, corners = cv2.findChessboardCorners(gray, chessboard_size, None)
+    objpoints, imgpoints = [], []
+    captured = 0
 
-    display = frame.copy()
-    if ret_chess:
-        cv2.drawChessboardCorners(display, chessboard_size, corners, ret_chess)
+    print("Press SPACE to capture.")
+    print("Press 'C' to start calibration.")
 
-    cv2.putText(display, f"Captured: {captured}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    cv2.imshow("Calibration Capture", display)
+    while True:
+        cam.get_image(img)
+        frame_rgb = img.get_image_data_numpy()
+        frame = cv2.resize(frame_rgb, (616, 514))
 
-    key = cv2.waitKey(1)
-    if key == ord(' '):
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        ret_chess, corners = cv2.findChessboardCorners(gray, chessboard_size, None)
+
+        display = frame.copy()
         if ret_chess:
-            captured += 1
-            cv2.imwrite(f"calibration_images/chess_{captured}.png", frame)
-            objpoints.append(objp)
-            corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
-            imgpoints.append(corners2)
-            print(f"Captured image {captured}")
-    elif key == ord('c') and captured > 0:
-        break
+            cv2.drawChessboardCorners(display, chessboard_size, corners, ret_chess)
 
-print("\nComputing Calibration...")
-ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+        cv2.putText(display, f"Captured: {captured}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.imshow("Calibration Capture", display)
+
+        key = cv2.waitKey(1)
+        if key == ord(' '):
+            if ret_chess:
+                captured += 1
+                objpoints.append(objp)
+                corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+                imgpoints.append(corners2)
+                print(f"Captured image {captured}")
+        elif key == ord('c') and captured > 0:
+            break
+
+    print("\nComputing Calibration...")
+    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+    numpy.save(matrix_path, mtx)
+    numpy.save(dist_path, dist)
+    cv2.destroyWindow("Calibration Capture")
 
 print("\nIntrinsic Camera Matrix:\n", mtx)
 print(f"fx: {mtx[0,0]}, fy: {mtx[1,1]}, cx: {mtx[0,2]}, cy: {mtx[1,2]}")
-
-numpy.save("results/camera_matrix.npy", mtx)
-numpy.save("results/dist_coeffs.npy", dist)
-
 print("\nStarting Real-time Task... Press 'Q' to quit.")
+
 while True:
     cam.get_image(img)
     frame_rgb = img.get_image_data_numpy()
