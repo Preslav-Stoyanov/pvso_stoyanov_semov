@@ -1,3 +1,4 @@
+from ximea import xiapi
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -164,14 +165,23 @@ if os.path.exists("images/test.png"):
     _fig_gray = _fig_rgb = None
     plt.close('all')
 
-cap = cv2.VideoCapture(0)
+cam = xiapi.Camera()
+cam.open_device()
+cam.set_exposure(50000)
+cam.set_param("imgdataformat", "XI_RGB24")
+cam.set_param("auto_wb", 1)
+
+img = xiapi.Image()
+cam.start_acquisition()
+
 
 print("Running — Q = quit   H = histograms")
 
 while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+    cam.get_image(img)
+    frame_rgb = img.get_image_data_numpy()
+
+    frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
 
     display, gray, m_eq, cv_eq, m_clahe, cv_clahe, small = process_frame(frame)
     cv2.imshow("Group D: Histogram Enhancement", display)
@@ -183,6 +193,7 @@ while True:
         plot_histograms(gray, m_eq, cv_eq, m_clahe, cv_clahe)
         plot_rgb_histogram(small)
 
-cap.release()
+cam.stop_acquisition()
+cam.close_device()
 cv2.destroyAllWindows()
 plt.close('all')
