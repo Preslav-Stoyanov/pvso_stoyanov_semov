@@ -1,0 +1,201 @@
+\documentclass{article}
+\usepackage{graphicx}
+\input{preamble}
+
+\title{Zadanie 4 . \\ 3D Gaussian Splatting}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Znenie zadania}
+
+Cieľom zadania je oboznámiť sa s modernou metódou 3D rekonštrukcie scény pomocou
+\textbf{3D Gaussian Splatting} (3DGS).
+Študent prejde celým pracovným postupom od fotografií až po interaktívny 3D viewer,
+najprv na referenčnom datasete a potom na vlastnoručne nasnímanej scéne.
+\\[4pt]
+Zadanie je dokopy za \textbf{25~b.} a pozostáva z nasledujúcich úloh:
+
+\begin{enumerate}
+
+% ── ÚLOHA 1 ──────────────────────────────────────────────────────────────────
+\item \textbf{[5~b.]} Spustenie postupu na referenčnom datasete.\\
+Táto úloha slúži na \textbf{pochopenie celého pracovného postupu} a overenie funkčnosti
+prostredia ešte pred tým, ako budete pracovať na vlastnom datasete.
+Na referenčných dátach sa naučíte každý krok bez toho, aby ste riešili
+problémy so snímaním.\\[4pt]
+Stiahnite niektorý z verejne dostupných datasetov (napr.\ \textit{Tanks and
+Temples – truck}, \textit{garden}, alebo iný kompatibilný dataset).
+Z datasetu použite \textbf{iba fotografie} (adresár \texttt{input/}) –
+\emph{žiadne predpočítané dáta}.
+Celý postup spustite sami od začiatku podľa návodu \texttt{NAVOD.md}:
+
+\begin{enumerate}
+    \item \texttt{./run.sh} – spustenie Docker kontajnera.
+    \item \texttt{colmap gui} – spustenie COLMAP GUI a postupné vykonanie:
+        \begin{itemize}
+            \item Feature extraction (model: \texttt{SIMPLE\_PINHOLE})
+            \item Feature matching (Exhaustive)
+            \item Reconstruction (Sparse)
+            \item Export modelu do \texttt{distorted/sparse/0/}
+        \end{itemize}
+    \item \texttt{python3 convert.py -s data/<dataset>} – undistortion fotografií.
+    \item \texttt{python3 train.py -s data/<dataset>} – trénovanie 3DGS modelu
+          (30\,000 iterácií, checkpointy po 7\,000 a 30\,000).
+    \item \texttt{SIBR\_gaussianViewer\_app -m output/<uuid>} – vizualizácia výsledku.
+\end{enumerate}
+
+Zdokumentujte postup screenshotmi z každého kroku (COLMAP GUI, priebeh trénovania,
+viewer). Uveďte dosiahnutú metriku \textbf{PSNR} po 7\,000 a 30\,000 iteráciách.
+
+% ── ÚLOHA 2 ──────────────────────────────────────────────────────────────────
+\item \textbf{[10~b.]} Snímanie vlastnej scény kamerou Ximea.\\
+Vyberte a nasnímate vlastnú scénu priemyselnou kamerou Ximea (vysoké rozlíšenie).
+Fotografie \textbf{downscalujte} pred spustením COLMAP
+(odporúčame dlhšiu stranu na max.\ \textbf{600–1200~px}) – kamera má príliš
+vysoké rozlíšenie na priame spracovanie a zároveň COLMAP aj 3DGS by bežali
+neúnosne dlho.
+
+Spustite celý postup rovnako ako v úlohe 1.
+Uveďte dosiahnutú metriku PSNR a vizuálne porovnajte výsledok
+s referenčným datasetom.
+
+% ── ÚLOHA 3 ──────────────────────────────────────────────────────────────────
+\item \textbf{[5~b.]} Vyhodnotenie výsledkov.\\
+Porovnajte výsledky oboch scén (referenčný dataset vs.\ vlastná scéna):
+\begin{itemize}
+    \item tabuľka PSNR po 7\,000 a 30\,000 iteráciách,
+    \item vizuálne porovnanie renderov z rovnakých uhlov pohľadu,
+    \item komentár – čo ovplyvnilo kvalitu vlastnej scény
+          (počet fotografií, osvetlenie, typ objektu, \ldots).
+\end{itemize}
+
+% ── ÚLOHA 4 ──────────────────────────────────────────────────────────────────
+\item \textbf{[5~b.]} Dokumentácia.\\
+Odovzdajte správu (PDF) obsahujúcu:
+\begin{itemize}
+    \item popis každého kroku s príslušnými screenshotmi,
+    \item popis procesu snímania vlastnej scény (čo, kde, ako),
+    \item grafické porovnanie výsledkov,
+    \item záver s odporúčaniami – čo by ste urobili inak pre lepšie výsledky.
+\end{itemize}
+
+\end{enumerate}
+
+\textbf{Termín odovzdania:} 12.\ cvičenie semestra
+
+\newpage
+
+% =============================================================================
+\section*{Poznámky, tipy a pomôcky}
+
+\subsection*{Postup – dodržujte NAVOD.md}
+
+Všetky konkrétne príkazy, cesty a parametre sú detailne popísané v súbore
+\texttt{NAVOD.md} v repozitári.
+Pri akomkoľvek probléme si najprv prečítajte sekciu \emph{Riešenie problémov}
+v návode.
+
+% ── Dataset ──────────────────────────────────────────────────────────────────
+\subsection*{Kde nájsť referenčný dataset}
+
+\begin{itemize}
+    \item \textbf{Tanks and Temples} (truck, train):
+          \href{https://www.tanksandtemples.org/download/}{tanksandtemples.org/download}
+    \item \textbf{Mip-NeRF 360} (garden, room, counter, \ldots):
+          \href{https://jonbarron.info/mipnerf360/}{jonbarron.info/mipnerf360}
+    \item Z datasetu použite \textbf{iba priečinok s fotografiami} –
+          akékoľvek predpočítané sparse/dense dáta odstráňte.
+\end{itemize}
+
+% ── Downscale ─────────────────────────────────────────────────────────────────
+\subsection*{Prečo a ako downscalovať fotografie}
+
+Kamera Ximea produkuje snímky s rozlíšením až 12–20~Mpx.
+COLMAP extrahuje príznaky na úrovni pixelov a pri vysokom rozlíšení:
+\begin{itemize}
+    \item feature extraction trvá rádovo hodiny,
+    \item pamäť GPU pri trénovaní je výrazne vyššia.
+\end{itemize}
+\textbf{Odporúčané rozlíšenie:} dlhšia strana \textbf{1600–2000~px}
+(zodpovedá cca 2–3~Mpx).
+Zachovajte pomer strán, nestrihajte.
+Downscale spustite \emph{pred} spustením COLMAP.
+
+% ── Tipy na snímanie ─────────────────────────────────────────────────────────
+\subsection*{Tipy pre kvalitné snímanie scény}
+
+\begin{itemize}
+    \item \textbf{Počet fotografií:} minimálne \textbf{60–120 snímok}.
+          Viac fotografií = lepšia rekonštrukcia, ale dlhší čas COLMAP a trénovania.
+    \item \textbf{Pokrytie:} pohybujte sa \emph{okolo celého objektu} v kruhu,
+          ideálne na viacerých výškach (nízko, v strede, trochu zhora).
+          Každý bod scény musí byť viditeľný z \textbf{aspoň 3 rôznych uhlov}.
+    \item \textbf{Prekrytie snímok:} po každom kroku pootočte kameru max.\
+          o 10–15° – susedné snímky musia mať aspoň 60\,\% spoločnej plochy.
+    \item \textbf{Statická scéna:} počas celého snímania sa nesmie nič hýbať
+          (žiadni ľudia v zábere, žiadny vietor, pohyblivé predmety odložte).
+    \item \textbf{Osvetlenie:} rovnomerné difúzne svetlo (oblačný deň alebo
+          interiér s viacerými zdrojmi).
+          Vyhnite sa ostrým tieňom a priamemu slnku – tiene sa menia
+          pri pohybe kamery a mätú rekonštrukciu.
+    \item \textbf{Typ objektu:} ideálny objekt má \emph{textúrovaný, matný}
+          povrch (napr.\ socha, nábytok, kôš, rastlina).
+          \textbf{Problematické} sú:
+          \begin{itemize}
+              \item lesklé / zrkadlové povrchy (kov, sklo),
+              \item homogénne plochy bez textúry (biela stena, jednofarebný stôl),
+              \item priehľadné objekty (sklo, plast).
+          \end{itemize}
+    \item \textbf{Ohnisková vzdialenosť:} používajte fixné nastavenia kamery
+          (expozícia, ISO, zaostenie) počas celého snímania.
+          Automatické zaostenie medzi snímkami spôsobuje nekonzistenciu.
+    \item \textbf{Rozostrenie a pohyb:} fotografie musia byť ostré.
+          Pri slabom osvetlení zvýšte ISO namiesto predlžovania expozičného času.
+\end{itemize}
+
+% ── Výber scény ──────────────────────────────────────────────────────────────
+\subsection*{Odporúčané typy scén}
+
+\begin{itemize}
+    \item Stolový objekt (soška, rastlina, hrnček) na neutrálnom pozadí –
+          jednoduché na obísť, krátky čas snímania.
+    \item Kútik miestnosti s nábytkom – väčší objem, zaujímavejší výsledok.
+    \item Schodisko alebo chodba – dobrá textúra, ale vyžaduje viac snímok.
+\end{itemize}
+
+% ── Metriky ──────────────────────────────────────────────────────────────────
+\subsection*{Interpretácia metriky PSNR}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+PSNR & Kvalita \\
+\midrule
+$< 22$~dB & slabá rekonštrukcia (málo snímok, zlé pokrytie) \\
+$22$–$26$~dB & prijateľná (checkpoint 7\,000 it.) \\
+$26$–$29$~dB & dobrá (checkpoint 30\,000 it.) \\
+$> 29$~dB & výborná \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ── Užitočné odkazy ──────────────────────────────────────────────────────────
+\subsection*{Užitočné odkazy}
+
+\begin{itemize}
+    \item Originálny paper: Kerbl et al., \textit{3D Gaussian Splatting for
+          Real-Time Radiance Field Rendering}, SIGGRAPH 2023.\\
+          \href{https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/}{repo-sam.inria.fr/fungraph/3d-gaussian-splatting}
+    \item Vizuálny tutoriál:
+          \href{https://learnopencv.com/3d-gaussian-splatting/}{learnopencv.com/3d-gaussian-splatting}
+    \item COLMAP dokumentácia:
+          \href{https://colmap.github.io/}{colmap.github.io}
+    \item \textbf{Repozitár s Docker prostredím, návodmi a zadaním:}\\
+          \href{https://github.com/michKovac/PVSO-gaussian-splatting-assignment}{github.com/michKovac/PVSO-gaussian-splatting-assignment}\\
+          Obsahuje: \texttt{NAVOD.md}, \texttt{Dockerfile}, \texttt{run.sh}, \texttt{run.bat}
+\end{itemize}
+
+\end{document}

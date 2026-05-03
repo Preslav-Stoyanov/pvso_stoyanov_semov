@@ -1,0 +1,199 @@
+\documentclass{article}
+\usepackage{graphicx}
+\input{preamble}
+
+\title{Assignment 4. \\ 3D Gaussian Splatting}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Assignment Description}
+
+The goal of this assignment is to get familiar with the modern 3D scene reconstruction
+method called \textbf{3D Gaussian Splatting} (3DGS).
+Students will go through the full workflow from photographs to an interactive 3D viewer,
+first on a reference dataset and then on a self-captured scene.
+\\[4pt]
+The assignment is worth \textbf{25~pts.} in total and consists of the following tasks:
+
+\begin{enumerate}
+
+% ── TASK 1 ───────────────────────────────────────────────────────────────────
+\item \textbf{[5~pts.]} Running the workflow on a reference dataset.\\
+This task is designed to help you \textbf{understand the full workflow} and verify
+that your environment works correctly before you start working with your own dataset.
+Working with reference data lets you learn each step without having to solve
+capture-related problems at the same time.\\[4pt]
+Download one of the publicly available datasets (e.g.\ \textit{Tanks and
+Temples -- truck}, \textit{garden}, or another compatible dataset).
+Use \textbf{only the photographs} from the dataset (the \texttt{input/} directory) --
+\emph{no pre-computed data}.
+Run the full workflow from scratch following the guide in \texttt{GUIDE.md}:
+
+\begin{enumerate}
+    \item \texttt{./run.sh} -- start the Docker container.
+    \item \texttt{colmap gui} -- launch COLMAP GUI and perform:
+        \begin{itemize}
+            \item Feature extraction (camera model: \texttt{SIMPLE\_PINHOLE})
+            \item Feature matching (Exhaustive)
+            \item Reconstruction (Sparse)
+            \item Export model to \texttt{distorted/sparse/0/}
+        \end{itemize}
+    \item \texttt{python3 convert.py -s data/<dataset>} -- image undistortion.
+    \item \texttt{python3 train.py -s data/<dataset>} -- train the 3DGS model
+          (30\,000 iterations, checkpoints at 7\,000 and 30\,000).
+    \item \texttt{SIBR\_gaussianViewer\_app -m output/<uuid>} -- visualise the result.
+\end{enumerate}
+
+Document each step with screenshots (COLMAP GUI, training progress, viewer).
+Report the \textbf{PSNR} metric at 7\,000 and 30\,000 iterations.
+
+% ── TASK 2 ───────────────────────────────────────────────────────────────────
+\item \textbf{[10~pts.]} Capturing your own scene with the Ximea camera.\\
+Choose and capture your own scene using the industrial Ximea camera (high resolution).
+\textbf{Downscale} the images before running COLMAP
+(recommended: longer side to max.\ \textbf{600--1200~px}) -- the camera produces
+images with very high resolution that would make both COLMAP and 3DGS training
+impractically slow.
+
+Run the full workflow in the same way as in Task~1.
+Report the achieved PSNR and visually compare the result with the reference dataset.
+
+% ── TASK 3 ───────────────────────────────────────────────────────────────────
+\item \textbf{[5~pts.]} Evaluation of results.\\
+Compare the results of both scenes (reference dataset vs.\ your own scene):
+\begin{itemize}
+    \item PSNR table at 7\,000 and 30\,000 iterations,
+    \item visual comparison of renders from the same viewpoints,
+    \item commentary -- what affected the quality of your scene
+          (number of photos, lighting, object type, \ldots).
+\end{itemize}
+
+% ── TASK 4 ───────────────────────────────────────────────────────────────────
+\item \textbf{[5~pts.]} Documentation.\\
+Submit a report (PDF) containing:
+\begin{itemize}
+    \item description of each step with corresponding screenshots,
+    \item description of the scene capture process (what, where, how),
+    \item visual comparison of results,
+    \item conclusion with recommendations -- what you would do differently for better results.
+\end{itemize}
+
+\end{enumerate}
+
+\textbf{Submission deadline:} 12th lab session of the semester
+
+\newpage
+
+% =============================================================================
+\section*{Notes, Tips and Resources}
+
+\subsection*{Follow GUIDE.md}
+
+All specific commands, paths and parameters are described in detail in
+\texttt{GUIDE.md} in the repository.
+If you encounter any problem, first read the \emph{Troubleshooting} section of the guide.
+
+% ── Dataset ──────────────────────────────────────────────────────────────────
+\subsection*{Where to find a reference dataset}
+
+\begin{itemize}
+    \item \textbf{Tanks and Temples} (truck, train):
+          \href{https://www.tanksandtemples.org/download/}{tanksandtemples.org/download}
+    \item \textbf{Mip-NeRF 360} (garden, room, counter, \ldots):
+          \href{https://jonbarron.info/mipnerf360/}{jonbarron.info/mipnerf360}
+    \item Use \textbf{only the folder with photographs} from the dataset --
+          remove any pre-computed sparse/dense data.
+\end{itemize}
+
+% ── Downscale ─────────────────────────────────────────────────────────────────
+\subsection*{Why and how to downscale images}
+
+The Ximea camera produces images with resolutions up to 12--20~Mpx.
+COLMAP extracts features at pixel level and at high resolution:
+\begin{itemize}
+    \item feature extraction can take many hours,
+    \item GPU memory usage during training is significantly higher.
+\end{itemize}
+\textbf{Recommended resolution:} longer side at \textbf{1600--2000~px}
+(approximately 2--3~Mpx).
+Preserve the aspect ratio, do not crop.
+Run the downscale \emph{before} starting COLMAP.
+
+% ── Capture tips ─────────────────────────────────────────────────────────────
+\subsection*{Tips for capturing a high-quality scene}
+
+\begin{itemize}
+    \item \textbf{Number of photographs:} at least \textbf{60--120 images}.
+          More photos = better reconstruction, but longer COLMAP and training time.
+    \item \textbf{Coverage:} move \emph{around the entire object} in a circle,
+          ideally at several heights (low, middle, slightly from above).
+          Every point in the scene must be visible from \textbf{at least 3 different angles}.
+    \item \textbf{Image overlap:} rotate the camera by at most 10--15° between shots --
+          adjacent images must share at least 60\,\% of the scene.
+    \item \textbf{Static scene:} nothing must move during the entire capture
+          (no people in frame, no wind, remove any moveable objects).
+    \item \textbf{Lighting:} use uniform, diffuse light (overcast day or
+          indoor scene with multiple light sources).
+          Avoid harsh shadows and direct sunlight -- shadows change as the
+          camera moves and confuse the reconstruction.
+    \item \textbf{Object type:} the ideal object has a \emph{textured, matte}
+          surface (e.g.\ a statue, furniture, basket, plant).
+          \textbf{Problematic} surfaces:
+          \begin{itemize}
+              \item shiny / mirror-like surfaces (metal, glass),
+              \item homogeneous surfaces without texture (white wall, plain table),
+              \item transparent objects (glass, plastic).
+          \end{itemize}
+    \item \textbf{Camera settings:} use fixed settings (exposure, ISO, focus)
+          throughout the entire capture session.
+          Auto-focus changes between shots cause inconsistency.
+    \item \textbf{Motion blur:} all photographs must be sharp.
+          In low-light conditions, increase ISO rather than extending exposure time.
+\end{itemize}
+
+% ── Scene selection ──────────────────────────────────────────────────────────
+\subsection*{Recommended scene types}
+
+\begin{itemize}
+    \item Tabletop object (figurine, plant, mug) on a neutral background --
+          easy to walk around, short capture time.
+    \item Room corner with furniture -- larger volume, more interesting result.
+    \item Staircase or corridor -- good texture, but requires more images.
+\end{itemize}
+
+% ── Metrics ──────────────────────────────────────────────────────────────────
+\subsection*{Interpreting the PSNR metric}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+PSNR & Quality \\
+\midrule
+$< 22$~dB & poor reconstruction (too few images, bad coverage) \\
+$22$--$26$~dB & acceptable (checkpoint at 7\,000 it.) \\
+$26$--$29$~dB & good (checkpoint at 30\,000 it.) \\
+$> 29$~dB & excellent \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ── Useful links ─────────────────────────────────────────────────────────────
+\subsection*{Useful links}
+
+\begin{itemize}
+    \item Original paper: Kerbl et al., \textit{3D Gaussian Splatting for
+          Real-Time Radiance Field Rendering}, SIGGRAPH 2023.\\
+          \href{https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/}{repo-sam.inria.fr/fungraph/3d-gaussian-splatting}
+    \item Visual tutorial:
+          \href{https://learnopencv.com/3d-gaussian-splatting/}{learnopencv.com/3d-gaussian-splatting}
+    \item COLMAP documentation:
+          \href{https://colmap.github.io/}{colmap.github.io}
+    \item \textbf{Repository with Docker environment, guides and assignment:}\\
+          \href{https://github.com/michKovac/PVSO-gaussian-splatting-assignment}{github.com/michKovac/PVSO-gaussian-splatting-assignment}\\
+          Contains: \texttt{GUIDE.md}, \texttt{Dockerfile}, \texttt{run.sh}, \texttt{run.bat}
+\end{itemize}
+
+\end{document}

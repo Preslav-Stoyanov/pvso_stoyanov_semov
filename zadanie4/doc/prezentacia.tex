@@ -1,0 +1,794 @@
+% ─────────────────────────────────────────────────────────────────────────────
+% 3D Gaussian Splatting – Beamer prezentácia pre cvičenie PVSO
+% Kompilovať: pdflatex prezentacia.tex  (alebo Overleaf)
+% ─────────────────────────────────────────────────────────────────────────────
+\documentclass[aspectratio=169]{beamer}
+
+% ── Moderný čistý vzhľad ─────────────────────────────────────────────────────
+\usetheme{default}
+\setbeamertemplate{navigation symbols}{}
+\usefonttheme[onlymath]{serif}
+\usefonttheme{professionalfonts}
+
+% ── Farby ────────────────────────────────────────────────────────────────────
+\definecolor{pvsoBlue}{RGB}{0,70,140}
+\definecolor{pvsoRed}{RGB}{180,0,0}
+\definecolor{pvsoGray}{RGB}{90,90,90}
+\definecolor{pvsoLight}{RGB}{232,240,252}
+\definecolor{pvsoDark}{RGB}{15,35,65}
+
+% ── Základné farby tém ────────────────────────────────────────────────────────
+\setbeamercolor{background canvas}{bg=white}
+\setbeamercolor{normal text}{fg=pvsoDark}
+\setbeamercolor{alerted text}{fg=pvsoRed}
+\setbeamercolor{structure}{fg=pvsoBlue}
+
+% ── Odrážky ──────────────────────────────────────────────────────────────────
+\setbeamertemplate{itemize item}{%
+  \color{pvsoBlue}\raisebox{0.5pt}{\footnotesize$\blacktriangleright$}}
+\setbeamertemplate{itemize subitem}{%
+  \color{pvsoBlue!65}\raisebox{0.5pt}{\scriptsize$\triangleright$}}
+\setbeamertemplate{enumerate item}{%
+  \textcolor{pvsoBlue}{\bfseries\insertenumlabel.}}
+\setbeamertemplate{enumerate subitem}{%
+  \textcolor{pvsoBlue!65}{\bfseries\insertsubenumlabel.}}
+
+% ── Bloky – moderný plochý dizajn ────────────────────────────────────────────
+\setbeamercolor{block title}{bg=pvsoBlue,fg=white}
+\setbeamercolor{block body}{bg=pvsoLight,fg=pvsoDark}
+\setbeamercolor{block title alerted}{bg=pvsoRed,fg=white}
+\setbeamercolor{block body alerted}{bg=pvsoRed!10,fg=pvsoDark}
+\setbeamertemplate{blocks}[rounded][shadow=false]
+
+% ── Nadpis snímky ────────────────────────────────────────────────────────────
+\setbeamercolor{frametitle}{fg=pvsoBlue,bg=white}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+\setbeamertemplate{frametitle}{%
+  \vspace*{1pt}%
+  {\usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle}%
+  \vspace*{1pt}%
+  {\color{pvsoBlue}\hrule height 1.2pt}%
+  \vspace*{2pt}%
+}
+
+% ── Pätička s progresovou lištou ─────────────────────────────────────────────
+\setbeamercolor{progress done}{bg=pvsoBlue}
+\setbeamercolor{progress left}{bg=pvsoBlue!20}
+\setbeamertemplate{footline}{%
+  \hbox{%
+    \begin{beamercolorbox}[wd=\dimexpr\paperwidth*\insertframenumber/%
+        \inserttotalframenumber\relax, ht=2.5pt, dp=0pt]{progress done}%
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=\dimexpr\paperwidth-%
+        \paperwidth*\insertframenumber/\inserttotalframenumber\relax,%
+        ht=2.5pt, dp=0pt]{progress left}%
+    \end{beamercolorbox}%
+  }%
+  \nointerlineskip%
+  \begin{beamercolorbox}[wd=\paperwidth, ht=2.4ex, dp=1.2ex]{footline}%
+    {\hspace{5pt}\tiny\color{pvsoGray}%
+      \insertshortauthor\enspace–\enspace\insertshorttitle}%
+    \hfill%
+    {\tiny\color{pvsoGray}%
+      \insertframenumber\,/\,\inserttotalframenumber\hspace{5pt}}%
+  \end{beamercolorbox}%
+}
+
+% ── Titulná strana ────────────────────────────────────────────────────────────
+\setbeamertemplate{title page}{%
+  \begin{tikzpicture}[remember picture, overlay]
+    \fill[pvsoBlue]
+      (current page.north west) rectangle
+      ([yshift=-0.54\paperheight]current page.north east);
+    \node[anchor=center, text=white, font=\Large\bfseries,
+          text width=0.82\paperwidth, align=center]
+      at ([yshift=0.115\paperheight]current page.center) {\inserttitle};
+    \node[anchor=center, text=white!80!pvsoBlue, font=\normalsize,
+          text width=0.82\paperwidth, align=center]
+      at ([yshift=0.022\paperheight]current page.center) {\insertsubtitle};
+    \draw[white!45, line width=0.5pt]
+      ([xshift=-0.28\paperwidth, yshift=-0.028\paperheight]current page.center) --
+      ([xshift= 0.28\paperwidth, yshift=-0.028\paperheight]current page.center);
+    \node[anchor=center, text=pvsoGray, font=\normalsize]
+      at ([yshift=-0.13\paperheight]current page.center) {\insertauthor};
+    \node[anchor=center, text=pvsoGray, font=\small]
+      at ([yshift=-0.19\paperheight]current page.center) {\insertinstitute};
+    \node[anchor=center, text=pvsoGray, font=\small]
+      at ([yshift=-0.25\paperheight]current page.center) {\insertdate};
+  \end{tikzpicture}%
+}
+
+% ── Balíčky ──────────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[slovak]{babel}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes, positioning, fit, backgrounds, calc}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{fontawesome5}
+
+% ── Metadáta ─────────────────────────────────────────────────────────────────
+\title[3D Gaussian Splatting]{3D Gaussian Splatting}
+\subtitle{Od fotografií k interaktívnej 3D scéne}
+\author{PVSO – Cvičenie}
+\institute{Počítačové videnie a spracovanie obrazu}
+\date{2026}
+
+% ── Pomocné príkazy ───────────────────────────────────────────────────────────
+\newcommand{\highlight}[1]{\textcolor{pvsoBlue}{\textbf{#1}}}
+\newcommand{\red}[1]{\textcolor{pvsoRed}{\textbf{#1}}}
+
+% =============================================================================
+\begin{document}
+
+% ── Titulný slajd ─────────────────────────────────────────────────────────────
+\begin{frame}[plain]
+\titlepage
+\end{frame}
+
+% =============================================================================
+% SLAJD 1 – Pipeline prehľad
+% =============================================================================
+\begin{frame}{Čo dnes urobíme}
+
+\begin{tikzpicture}[
+    node distance=0.4cm and 0.3cm,
+    box/.style={rectangle, rounded corners=5pt, minimum width=2.6cm,
+                minimum height=1cm, align=center, font=\small\bfseries},
+    arrow/.style={-{Stealth[length=6pt]}, thick, pvsoBlue}
+]
+\node[box, fill=pvsoBlue!12, draw=pvsoBlue] (cam)
+    {\faCamera\\[2pt] Fotky\\scény};
+\node[box, fill=pvsoBlue!12, draw=pvsoBlue, right=of cam] (feat)
+    {\faSitemap\\[2pt] COLMAP\\príznaky};
+\node[box, fill=pvsoBlue!12, draw=pvsoBlue, right=of feat] (rec)
+    {\faCube\\[2pt] COLMAP\\rekonštrukcia};
+\node[box, fill=pvsoRed!12, draw=pvsoRed, right=of rec] (train)
+    {\faBrain\\[2pt] Gaussian\\trénovanie};
+\node[box, fill=green!12, draw=green!55!black, right=of train] (view)
+    {\faEye\\[2pt] SIBR\\Viewer};
+
+\draw[arrow] (cam) -- (feat);
+\draw[arrow] (feat) -- (rec);
+\draw[arrow] (rec) -- (train);
+\draw[arrow] (train) -- (view);
+
+\node[font=\tiny, pvsoGray, below=0.15cm of feat]  {5–30 min};
+\node[font=\tiny, pvsoGray, below=0.15cm of rec]   {5–30 min};
+\node[font=\tiny, pvsoGray, below=0.15cm of train] {30–60 min};
+\node[font=\tiny, pvsoGray, below=0.15cm of view]  {real-time};
+\end{tikzpicture}
+
+\vspace{0.45cm}
+\begin{columns}[t]
+\column{0.5\textwidth}
+\textbf{Teória (táto prezentácia)}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item Ako COLMAP „vidí" 3D zo 2D
+    \item Čo sú 3D Gaussiány
+    \item Ako prebieha trénovanie
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{Cvičenie}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item Nasnímať scénu kamerou Ximea
+    \item Spustiť COLMAP GUI v Dockeri
+    \item Natrénovať vlastný model
+\end{itemize}
+\end{columns}
+\end{frame}
+
+% =============================================================================
+% SLAJD 2 – Problém: 3D z 2D
+% =============================================================================
+\begin{frame}{Problém: ako dostať 3D z 2D fotografií?}
+
+\begin{columns}[c]
+\column{0.52\textwidth}
+
+Fotografia je \red{strata informácie} – 3D scéna sa premietne do 2D:
+\[
+\mathbf{p}_{2D} = \mathbf{K} \cdot [\mathbf{R} \mid \mathbf{t}] \cdot \mathbf{P}_{3D}
+\]
+
+\vspace{0.08cm}
+\textbf{Čo vieme z jednej fotky?}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item farbu pixelov \checkmark
+    \item smer lúča kamery \checkmark
+    \item \red{hĺbku (vzdialenosť)?} $\boldsymbol{\times}$
+\end{itemize}
+
+\vspace{0.08cm}
+\textbf{Riešenie:} viac fotografií z rôznych uhlov\\
+$\Rightarrow$ \highlight{triangulácia}
+
+\column{0.48\textwidth}
+\begin{center}
+\begin{tikzpicture}[scale=1.15]
+\draw[pvsoBlue, thick, fill=pvsoBlue!15]
+    (0,3.2) -- (0.72,2.35) -- (-0.72,2.35) -- cycle;
+\draw[pvsoBlue, thick, fill=pvsoBlue!15]
+    (3.5,3.2) -- (4.22,2.35) -- (2.78,2.35) -- cycle;
+\node[font=\small, pvsoBlue] at (0,3.55) {\textbf{Kamera 1}};
+\node[font=\small, pvsoBlue] at (3.5,3.55) {\textbf{Kamera 2}};
+\draw[pvsoRed, dashed, thick] (0,2.95) -- (1.75,1.05);
+\draw[pvsoRed, dashed, thick] (3.5,2.95) -- (1.75,1.05);
+\node[circle, fill=pvsoRed, inner sep=4pt] at (1.75,1.05) {};
+\node[font=\small, pvsoGray, below=0.1cm] at (1.75,1.05) {3D bod (P)};
+\node[font=\footnotesize, pvsoGray] at (1.75,0.32) {triangulácia};
+\end{tikzpicture}
+\end{center}
+\end{columns}
+
+\vspace{0.15cm}
+\begin{alertblock}{Väzba na predchádzajúce prednášky}
+{\small Kamera model $\mathbf{K}$, $[\mathbf{R}|\mathbf{t}]$ – PVSO prednáška 1.\enspace
+Príznaky, Harris detektor, RANSAC – prednáška 7.}
+\end{alertblock}
+
+\end{frame}
+
+% =============================================================================
+% SLAJD 3 – COLMAP: príznaky a matching
+% =============================================================================
+\begin{frame}{COLMAP – Krok 1: Príznaky a Matching}
+
+% Vizualizácia – centrovane, väčšia
+\begin{center}
+\begin{tikzpicture}[scale=1.0]
+% Fotka 1
+\draw[pvsoBlue, thick, fill=pvsoBlue!8] (0,0) rectangle (2.4,1.65);
+\node[font=\small, pvsoBlue] at (1.2,1.95) {\textbf{Fotka 1}};
+\node[circle, fill=pvsoRed, inner sep=3pt] at (0.55,1.15) {};
+\node[circle, fill=pvsoRed, inner sep=3pt] at (1.25,0.60) {};
+\node[circle, fill=pvsoRed, inner sep=3pt] at (1.95,1.30) {};
+
+% Fotka 2
+\draw[pvsoBlue, thick, fill=pvsoBlue!8] (3.1,0) rectangle (5.5,1.65);
+\node[font=\small, pvsoBlue] at (4.3,1.95) {\textbf{Fotka 2}};
+\node[circle, fill=pvsoRed, inner sep=3pt] at (3.40,1.20) {};
+\node[circle, fill=pvsoRed, inner sep=3pt] at (4.25,0.55) {};
+\node[circle, fill=pvsoRed, inner sep=3pt] at (5.10,1.35) {};
+
+% Matching línie
+\draw[green!60!black, thick] (0.55,1.15) -- (3.40,1.20);
+\draw[green!60!black, thick] (1.25,0.60) -- (4.25,0.55);
+\draw[green!60!black, thick] (1.95,1.30) -- (5.10,1.35);
+
+% Popis
+\node[font=\small, pvsoGray] at (2.75,-0.28) {korešpondencie (SIFT matching)};
+
+% Šípka a výsledok
+\node[font=\small, pvsoGray] at (2.75,-0.70) {$\Downarrow$\enspace triangulácia\enspace$\Rightarrow$\enspace sparse 3D body};
+
+% Sparse cloud – kompaktne
+\foreach \x/\y in {1.35/-1.35, 1.85/-1.10, 2.35/-1.40,
+                   2.80/-1.13, 3.25/-1.33, 2.05/-1.55, 2.90/-1.53, 2.55/-1.23} {
+    \node[circle, fill=pvsoBlue!75, inner sep=2.5pt] at (\x,\y) {};
+}
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.04cm}
+\begin{columns}[t]
+\column{0.5\textwidth}
+\begin{block}{Feature Extraction (SIFT)}
+{\small Nájdenie \highlight{kľúčových bodov} – podobné Harrisovmu detektoru rohov (prednáška 7).
+Pre každý bod: \textit{deskriptor} (128-dim vektor).}
+\end{block}
+
+\column{0.5\textwidth}
+\begin{block}{Feature Matching}
+{\small Nájdenie \highlight{korešpondenčných párov} medzi fotkami – porovnanie deskriptorov,
+filtrácia pomocou \textbf{RANSAC} (prednáška 7).}
+\end{block}
+\end{columns}
+
+\end{frame}
+
+% =============================================================================
+% SLAJD 4 – COLMAP: Rekonštrukcia
+% =============================================================================
+\begin{frame}{COLMAP – Krok 2: Sparse Rekonštrukcia a Undistortion}
+
+\begin{columns}[t]
+\column{0.50\textwidth}
+
+\begin{block}{Sparse Reconstruction (SfM)}
+Z korešpondencií COLMAP vypočíta:
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item \textbf{pozície kamier} $[\mathbf{R}|\mathbf{t}]$ v 3D priestore
+    \item \textbf{sparse mrak bodov} – tisíce 3D bodov
+\end{itemize}
+{\footnotesize Výsledok: \texttt{cameras.bin}, \texttt{images.bin}, \texttt{points3D.bin}}
+\end{block}
+
+\vspace{0.08cm}
+\begin{block}{Undistortion (\texttt{convert.py})}
+{\small Reálne objektívy \textbf{skresľujú} obraz (radiálna distorzia). 3DGS potrebuje \textbf{ideálny pinhole model}:
+\begin{itemize}\setlength{\itemsep}{0pt}
+    \item COLMAP vypočíta parametre distorzie
+    \item \texttt{convert.py} vytvorí undistortované fotky
+\end{itemize}}
+\end{block}
+
+\column{0.50\textwidth}
+\begin{center}
+\begin{tikzpicture}[scale=1.1]
+\fill[pvsoGray!15] (-2,-0.3) rectangle (2,0);
+\foreach \x/\y in {-1.2/0.5, -0.5/1.0, 0/0.8, 0.5/1.3, 1.0/0.6,
+                    1.4/0.9, -0.8/1.5, 0.3/0.4, -0.2/1.8, 0.8/0.2} {
+    \node[circle, fill=pvsoBlue!75, inner sep=2pt] at (\x,\y) {};
+}
+\foreach \x in {-1.7, -0.85, 0, 0.85, 1.7} {
+    \draw[pvsoRed, thick, fill=pvsoRed!20]
+        (\x,2.55) -- (\x-0.27,2.12) -- (\x+0.27,2.12) -- cycle;
+    \draw[pvsoRed, very thin] (\x,2.25) -- (0,0.9);
+}
+\node[font=\small, pvsoBlue] at (0,-0.62) {sparse point cloud};
+\node[font=\small, pvsoRed]  at (0,2.92) {pozície kamier};
+\end{tikzpicture}
+\end{center}
+\end{columns}
+
+\end{frame}
+
+% =============================================================================
+% SLAJD 5 – Čo je 3D Gaussian Splatting?
+% =============================================================================
+\begin{frame}{3D Gaussian Splatting – základná myšlienka}
+
+\begin{columns}[c]
+\column{0.56\textwidth}
+
+\textbf{Kerbl et al., SIGGRAPH 2023} –
+scéna ako \highlight{milióny 3D Gaussiánov},
+každý popisuje jeden „kúsok" scény.
+
+\vspace{0.06cm}
+\begin{block}{Prečo Gaussiány?}
+\begin{itemize}\setlength{\itemsep}{1pt}
+    \item \textbf{explicitná} reprezentácia (na rozdiel od NeRF)
+    \item rýchle renderovanie – \textbf{real-time}
+    \item ľahko diferencovateľné $\Rightarrow$ optimalizácia
+    \item plynulé prechody a transparentnosť
+\end{itemize}
+\end{block}
+
+
+\column{0.44\textwidth}
+\begin{center}
+\begin{tikzpicture}[scale=1.3]
+\draw[pvsoBlue!85, fill=pvsoBlue!25, thick, rotate around={30:(1.1,2.7)}]
+    (1.1,2.7) ellipse (0.88 and 0.40);
+\draw[pvsoRed!85, fill=pvsoRed!25, thick, rotate around={-20:(2.85,2.85)}]
+    (2.85,2.85) ellipse (0.66 and 0.30);
+\draw[green!60!black, fill=green!22, thick, rotate around={65:(2.05,1.80)}]
+    (2.05,1.80) ellipse (0.76 and 0.28);
+\draw[orange!85!black, fill=orange!22, thick, rotate around={10:(0.90,1.20)}]
+    (0.90,1.20) ellipse (0.58 and 0.37);
+\draw[purple!80, fill=purple!22, thick, rotate around={-40:(3.15,1.85)}]
+    (3.15,1.85) ellipse (0.70 and 0.28);
+\draw[cyan!70!black, fill=cyan!18, thick, rotate around={25:(1.90,0.65)}]
+    (1.90,0.65) ellipse (0.60 and 0.25);
+\node[font=\small, pvsoGray] at (2.05,0.08) {milióny Gaussiánov = scéna};
+\end{tikzpicture}
+\end{center}
+\end{columns}
+
+\end{frame}
+
+% =============================================================================
+% SLAJD 6 – Parametre 3D Gaussiánu
+% =============================================================================
+\begin{frame}{3D Gaussián – čo ho popisuje}
+
+Každý Gaussián má \highlight{tieto parametre} (optimalizujú sa pri trénovaní):
+
+\vspace{0.05cm}
+{\setlength\abovedisplayskip{2pt}\setlength\belowdisplayskip{2pt}%
+\begin{columns}[t]
+\column{0.25\textwidth}
+\begin{block}{\faMapMarker\ Poloha}
+\[\boldsymbol{\mu} \in \mathbb{R}^3\]
+stred Gaussiánu v 3D priestore
+\end{block}
+
+\column{0.25\textwidth}
+\begin{block}{\faCube\ Tvar}
+\[\boldsymbol{\Sigma} \in \mathbb{R}^{3\times3}\]
+kovariančná matica\\(veľkosť, orientácia)
+\end{block}
+
+\column{0.25\textwidth}
+\begin{block}{\faEyeSlash\ Priehľadnosť}
+\[\alpha \in [0,1]\]
+opacity – ako veľmi je Gaussián „viditeľný"
+\end{block}
+
+\column{0.25\textwidth}
+\begin{block}{\faPalette\ Farba}
+Spherical Harmonics (SH)\\[2pt]
+farba závisí od\\smeru pohľadu
+\end{block}
+\end{columns}}
+
+\vspace{0.05cm}
+\begin{center}
+\begin{tikzpicture}[scale=0.95]
+% ── Gaussián – elipsoid (reprezentuje Σ) ────────────────────────────────
+\draw[pvsoBlue, thick, fill=pvsoBlue!18, fill opacity=0.65,
+      rotate around={35:(0,0)}]
+    (0,0) ellipse (1.85 and 0.72);
+
+% Poloosi – naznačujú kovariančnú maticu
+\draw[pvsoGray!65, dashed, rotate around={35:(0,0)}] (-1.85,0) -- (1.85,0);
+\draw[pvsoGray!65, dashed, rotate around={35:(0,0)}] (0,-0.72) -- (0,0.72);
+
+% ── Stred – μ ────────────────────────────────────────────────────────────
+\node[circle, fill=pvsoRed, inner sep=4pt] (C) at (0,0) {};
+\draw[-{Stealth[length=5pt]}, pvsoRed, thick] (0,0) -- (-0.5,1.0);
+\node[pvsoRed, font=\small\bfseries, anchor=south] at (-0.5,1.02)
+    {$\boldsymbol{\mu}$ – poloha stredu};
+
+% ── Σ – tvar a orientácia (callout na obvod elipsy) ─────────────────────
+\draw[pvsoBlue!80!black, thin, -{Stealth[length=4pt]}]
+    (-3.1,0.1) -- (-1.62,0.35);
+\node[pvsoBlue!80!black, font=\small\bfseries, anchor=east] at (-3.1,0.1)
+    {$\boldsymbol{\Sigma}$ – tvar a orientácia};
+
+% ── α – priehľadnosť (callout na výplň) ─────────────────────────────────
+\draw[pvsoGray, thin, -{Stealth[length=4pt]}]
+    (2.85,0.2) -- (1.1,0.1);
+\node[pvsoGray, font=\small, anchor=west] at (2.85,0.2)
+    {$\alpha$ – priehľadnosť};
+
+% ── Farba – view-dependent: dve šípky pohľadov ──────────────────────────
+\draw[-{Stealth[length=6pt]}, orange!80!red, thick]
+    (-2.5,-1.0) -- (-0.55,-0.2);
+\draw[-{Stealth[length=6pt]}, cyan!65!blue, thick]
+    ( 2.5,-1.0) -- ( 0.6,-0.18);
+\node[orange!80!red, font=\scriptsize, anchor=north] at (-2.3,-1.0) {pohľad 1};
+\node[cyan!65!blue,  font=\scriptsize, anchor=north] at ( 2.3,-1.0) {pohľad 2};
+\node[pvsoGray, font=\footnotesize] at (0,-1.35)
+    {farba $= f(\text{smer pohľadu})$ – Spherical Harmonics};
+\end{tikzpicture}
+\end{center}
+
+\end{frame}
+
+% =============================================================================
+% SLAJD 7 – Splatting: renderovanie
+% =============================================================================
+\begin{frame}{Splatting – ako sa 3D Gaussiány premietajú na 2D}
+
+\begin{columns}[c]
+\column{0.54\textwidth}
+
+\textbf{Renderovanie} = premietnutie 3D Gaussiánov do 2D obrazu
+
+\vspace{0.2cm}
+\begin{enumerate}\setlength{\itemsep}{5pt}
+    \item \highlight{Projekcia}: každý 3D Gaussián $\to$ 2D elipsa\\
+    {\small(kamerová projekcia – prednáška 1)}
+
+    \item \highlight{Zoradenie}: podľa hĺbky od najbližšieho
+
+    \item \highlight{Alpha blending}: farby cez seba ($\alpha$):
+    \[
+    C = \sum_{i} c_i \cdot \alpha_i \prod_{j<i}(1-\alpha_j)
+    \]
+\end{enumerate}
+
+\vspace{0.1cm}
+Celý proces je \highlight{diferencovateľný}
+$\Rightarrow$ môžeme optimalizovať parametre!
+
+\column{0.46\textwidth}
+\begin{center}
+\begin{tikzpicture}[scale=1.12]
+\node[font=\small, pvsoBlue] at (1.5,4.2) {\textbf{3D priestor}};
+% 3D Gaussiány
+\draw[pvsoBlue, fill=pvsoBlue!25, rotate around={30:(0.8,3.1)}]
+    (0.8,3.1) ellipse (0.65 and 0.27);
+\draw[pvsoRed, fill=pvsoRed!25, rotate around={-15:(2.3,3.3)}]
+    (2.3,3.3) ellipse (0.55 and 0.23);
+\draw[green!60!black, fill=green!25, rotate around={50:(1.6,2.55)}]
+    (1.6,2.55) ellipse (0.60 and 0.23);
+% Kamera
+\draw[pvsoGray, thick, fill=pvsoGray!25]
+    (1.5,1.95) -- (1.2,1.58) -- (1.8,1.58) -- cycle;
+\node[font=\small, pvsoGray] at (1.5,1.33) {kamera};
+% Premietacie lúče
+\draw[pvsoGray, dashed] (0.8,2.92) -- (0.72,0.62);
+\draw[pvsoGray, dashed] (2.3,3.10) -- (2.18,0.62);
+% 2D obraz
+\draw[thick, pvsoBlue] (-0.1,0.05) rectangle (3.1,0.68);
+\node[font=\small, pvsoBlue] at (1.5,-0.28) {\textbf{2D obraz (pixel buffer)}};
+% 2D elipsy
+\draw[pvsoBlue, fill=pvsoBlue!35, rotate around={10:(0.72,0.36)}]
+    (0.72,0.36) ellipse (0.50 and 0.17);
+\draw[pvsoRed, fill=pvsoRed!35, rotate around={-5:(2.20,0.36)}]
+    (2.20,0.36) ellipse (0.45 and 0.17);
+\draw[green!60!black, fill=green!35, rotate around={15:(1.55,0.36)}]
+    (1.55,0.36) ellipse (0.55 and 0.17);
+\end{tikzpicture}
+\end{center}
+\end{columns}
+
+\end{frame}
+
+% =============================================================================
+% SLAJD 8 – Trénovanie
+% =============================================================================
+\begin{frame}{Trénovanie – ako sa Gaussiány učia}
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=0.5cm and 0.55cm,
+    box/.style={rectangle, rounded corners=4pt, minimum width=2.65cm,
+                minimum height=0.88cm, align=center, font=\small},
+    arrow/.style={-{Stealth[length=5pt]}, thick}
+]
+\node[box, fill=pvsoBlue!12, draw=pvsoBlue] (init)
+    {Inicializácia\\{\footnotesize sparse cloud z COLMAP}};
+\node[box, fill=pvsoBlue!12, draw=pvsoBlue, right=1.1cm of init] (render)
+    {Renderovanie\\{\footnotesize splatting $\to$ 2D obraz}};
+\node[box, fill=pvsoRed!12, draw=pvsoRed, right=1.1cm of render] (loss)
+    {Strata (Loss)\\{\footnotesize render vs. fotka}};
+\node[box, fill=green!12, draw=green!55!black, below=0.9cm of loss] (optim)
+    {Optimalizácia\\{\footnotesize $\mu, \Sigma, \alpha$, farba}};
+\node[box, fill=orange!12, draw=orange!70!black, below=0.9cm of init] (dens)
+    {Adaptívna\\densifikácia};
+
+\draw[arrow, pvsoBlue] (init)   -- (render);
+\draw[arrow, pvsoBlue] (render) -- (loss);
+\draw[arrow, pvsoRed]  (loss)   -- (optim)
+    node[midway, right, font=\footnotesize]{backprop};
+\draw[arrow, green!55!black]    (optim) -- (dens);
+\draw[arrow, orange!70!black]   (dens)  -- (init);
+
+\node[font=\footnotesize, pvsoGray, below=0.12cm] at ($(dens)!0.5!(optim)$)
+    {pridaj Gaussiány tam kde chýbajú};
+\node[font=\footnotesize, pvsoGray, below=0.12cm of optim]
+    {Adam optimizer};
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.2cm}
+\begin{columns}[t]
+\column{0.5\textwidth}
+\textbf{Loss funkcia:}
+\[
+\mathcal{L} = (1-\lambda)\mathcal{L}_1 + \lambda \mathcal{L}_{D\text{-}SSIM}
+\]
+{\small porovnáva renderovaný obraz s originálom}
+
+\column{0.5\textwidth}
+\textbf{Priebeh trénovania:}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item 30\,000 iterácií (default)
+    \item checkpoint po 7\,000 a 30\,000
+    \item výsledok: \texttt{point\_cloud.ply}
+\end{itemize}
+\end{columns}
+
+\end{frame}
+
+% =============================================================================
+% SLAJD 9 – Výsledky
+% =============================================================================
+\begin{frame}{Výsledky a možnosti zobrazenia}
+
+\begin{columns}[t]
+\column{0.50\textwidth}
+
+\begin{block}{Čo dostaneme?}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item súbor \texttt{point\_cloud.ply} – milióny 3D Gaussiánov
+    \item renderovanie z \textbf{ľubovoľného uhlu}
+    \item \textbf{real-time} interaktívny viewer
+\end{itemize}
+\end{block}
+
+\vspace{0.1cm}
+\begin{block}{SIBR Gaussian Viewer}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item interaktívna 3D navigácia
+    \item ovládanie: WASD + myš
+    \item pohľad z pozícií trénovacích kamier
+\end{itemize}
+\end{block}
+
+\vspace{0.1cm}
+\textbf{Metrika kvality:}\enspace
+{\small PSNR $\approx$ 27–30 dB = dobrý výsledok\enspace
+{\footnotesize(30+\,dB = výborný)}}
+
+\column{0.50\textwidth}
+
+\begin{block}{Typický výsledok – truck dataset}
+\begin{tabular}{ll}
+\toprule
+Iterácie & PSNR \\
+\midrule
+7\,000   & $\approx$ 24.7 dB \\
+30\,000  & $\approx$ 27.5 dB \\
+\bottomrule
+\end{tabular}
+\end{block}
+
+\vspace{0.1cm}
+\begin{block}{Kde sa používa?}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item VR/AR – interaktívne scény
+    \item robotika – mapovanie prostredia
+    \item kultúrne dedičstvo – digitalizácia
+    \item filmová produkcia
+    \item \textbf{priemyselná inšpekcia}
+\end{itemize}
+\end{block}
+
+\end{columns}
+
+\end{frame}
+
+% =============================================================================
+% SLAJD 10 – Cvičenie
+% =============================================================================
+\begin{frame}{Cvičenie – čo budete robiť}
+
+\begin{columns}[t]
+\column{0.52\textwidth}
+
+\begin{block}{\faDocker\ Prostredie – Docker}
+{\small Všetko je v Docker image:
+\begin{itemize}\setlength{\itemsep}{1pt}
+    \item COLMAP 3.9.1 (GUI + CUDA)
+    \item 3D Gaussian Splatting
+    \item SIBR Viewer
+\end{itemize}
+Spustenie: \texttt{./run.sh}}
+\end{block}
+
+\vspace{0.1cm}
+\begin{block}{\faCamera\ Kamera Ximea}
+{\small
+\begin{itemize}\setlength{\itemsep}{1pt}
+    \item priemyselná kamera s vysokým rozlíšením
+    \item nasnímajte scénu z \textbf{min. 50 uhlov}
+    \item každý bod viditeľný \textbf{aspoň 3$\times$}
+    \item uložte do \texttt{data/moja\_scena/input/}
+\end{itemize}}
+\end{block}
+
+\column{0.48\textwidth}
+
+\begin{block}{\faListOl\ Postup}
+{\footnotesize
+\begin{enumerate}\setlength{\itemsep}{0pt}
+    \item \texttt{./run.sh} – spusti Docker
+    \item \texttt{colmap gui} – rekonštrukcia
+    \begin{itemize}\setlength{\itemsep}{0pt}
+        \item Feature extraction (SIMPLE\_PINHOLE)
+        \item Feature matching (Exhaustive)
+        \item Reconstruction
+        \item Export model $\to$ \texttt{distorted/sparse/0/}
+    \end{itemize}
+    \item \texttt{python3 convert.py -s data/scena}
+    \item \texttt{python3 train.py -s data/scena}
+    \item \texttt{SIBR\_gaussianViewer\_app -m output/<uuid>}
+\end{enumerate}}
+\end{block}
+
+\begin{alertblock}{}
+Podrobný postup: \textbf{NAVOD.md}
+\end{alertblock}
+
+\end{columns}
+
+\end{frame}
+
+% =============================================================================
+% SLAJD 11 – Tipy pre snímanie
+% =============================================================================
+\begin{frame}{Tipy pre kvalitné snímanie scény}
+
+\begin{columns}[t]
+\column{0.50\textwidth}
+\begin{block}{\faCheck\ Správne}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item \textbf{50–200 fotografií} scény
+    \item veľké \textbf{prekrytie} – každý bod z $\geq$3 uhlov
+    \item pomalý pohyb okolo objektu
+    \item rôzne výšky kamery
+    \item \textbf{statická scéna} – nič sa nesmie hýbať
+    \item dobré rovnomerné osvetlenie
+\end{itemize}
+\end{block}
+
+\column{0.50\textwidth}
+\begin{alertblock}{\faTimes\ Problémy}
+\begin{itemize}\setlength{\itemsep}{2pt}
+    \item \red{lesklé / zrkadlové povrchy}
+    {\footnotesize(odlesk mení farbu podľa uhlu)}
+    \item \red{príliš málo fotografií}
+    {\footnotesize(COLMAP nenájde dostatok zhôd)}
+    \item \red{pohyb v scéne}
+    {\footnotesize(auto, ľudia, vietor)}
+    \item \red{homogénne plochy}
+    {\footnotesize(biela stena – žiadne príznaky)}
+\end{itemize}
+\end{alertblock}
+\end{columns}
+
+\vspace{0.2cm}
+\begin{center}
+\begin{tikzpicture}[scale=0.92]
+\draw[pvsoGray, dashed, thick] (0,0) ellipse (3.2 and 1.0);
+\node[circle, fill=pvsoBlue, inner sep=4pt] at (0,0) {};
+\node[font=\small, pvsoBlue] at (0,0.38) {\textbf{objekt}};
+\foreach \a in {0,45,...,315} {
+    \draw[pvsoRed, -{Stealth[length=8pt]}, thick]
+        ({3.2*cos(\a)},{1.0*sin(\a)}) -- ({2.45*cos(\a)},{0.77*sin(\a)});
+    \draw[pvsoRed, fill=pvsoRed!25, thick]
+        ({3.2*cos(\a)},{1.0*sin(\a)})
+        -- ({3.2*cos(\a)+0.30*cos(\a-90)},{1.0*sin(\a)+0.30*sin(\a-90)})
+        -- ({3.2*cos(\a)+0.30*cos(\a+90)},{1.0*sin(\a)+0.30*sin(\a+90)}) -- cycle;
+}
+\node[font=\small, pvsoGray, anchor=west] at (3.55, 0.28) {ideálna trajektória};
+\node[font=\small, pvsoGray, anchor=west] at (3.55,-0.22) {= kruh okolo objektu};
+\end{tikzpicture}
+\end{center}
+
+\end{frame}
+
+% =============================================================================
+% SLAJD 12 – Záver
+% =============================================================================
+\begin{frame}{Zhrnutie}
+
+\begin{columns}[c]
+\column{0.55\textwidth}
+\begin{block}{Čo sme sa naučili}
+\begin{itemize}\setlength{\itemsep}{3pt}
+    \item \highlight{COLMAP} (SfM): z 2D fotografií vypočíta polohy kamier
+    a sparse 3D mrak bodov\\
+    {\footnotesize – využíva príznaky + RANSAC (prednáška 7)}
+    \item \highlight{3D Gaussian Splatting}: scéna = milióny 3D Gaussiánov
+    s parametrami $(\mu, \Sigma, \alpha, \text{farba})$
+    \item \highlight{Splatting}: projekcia Gaussiánov do 2D + alpha blending
+    \item \highlight{Trénovanie}: optimalizácia cez diferencovateľné
+    renderovanie
+\end{itemize}
+\end{block}
+
+\column{0.45\textwidth}
+\begin{alertblock}{Na cvičení}
+\begin{enumerate}\setlength{\itemsep}{3pt}
+    \item Nasnímaj scénu kamerou Ximea
+    \item COLMAP GUI (rekonštrukcia)
+    \item \texttt{convert.py} (undistortion)
+    \item \texttt{train.py} (30–60 min)
+    \item SIBR Viewer (výsledok!)
+\end{enumerate}
+\end{alertblock}
+
+\vspace{0.15cm}
+\begin{block}{Zdroje}
+\begin{itemize}\small\setlength{\itemsep}{2pt}
+    \item Kerbl et al.\ SIGGRAPH 2023
+    \item \url{https://learnopencv.com/3d-gaussian-splatting/}
+    \item \texttt{NAVOD.md} v repozitári
+\end{itemize}
+\end{block}
+\end{columns}
+
+\end{frame}
+
+% =============================================================================
+\end{document}

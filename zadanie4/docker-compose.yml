@@ -1,0 +1,44 @@
+services:
+  gaussian-splatting:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gaussian-splatting:latest
+
+    # ── GPU access ────────────────────────────────────────────────────────────
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, compute, utility]
+
+    # ── X11 forwarding for GUI (COLMAP, SIBR viewer) ──────────────────────────
+    # Linux/WSL2:  DISPLAY is forwarded from host via /tmp/.X11-unix
+    # Windows 10:  run.bat sets DISPLAY=host.docker.internal:0 (needs VcXsrv)
+    # Windows 11:  WSLg provides X11 automatically through WSL2
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - XAUTHORITY=${XAUTHORITY:-}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+
+    volumes:
+      # X11 socket (Linux + WSL2 with WSLg)
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # Optional: forward Xauthority cookie (needed on some Linux setups)
+      - ${XAUTHORITY:-/dev/null}:/root/.Xauthority:ro
+      # Cesta k dátam sa nastavuje v súbore .env (DATA_PATH=...)
+      - ${DATA_PATH:-./data}:/workspace/data
+      # Výsledky trénovania (OUTPUT_PATH=... v .env)
+      - ${OUTPUT_PATH:-./output}:/workspace/output
+
+    # host network simplifies X11 on Linux; on Windows use bridge (default)
+    network_mode: ${DOCKER_NETWORK_MODE:-host}
+
+    stdin_open: true
+    tty: true
+
+    # Shared memory (needed by PyTorch DataLoader with multiple workers)
+    shm_size: "16gb"

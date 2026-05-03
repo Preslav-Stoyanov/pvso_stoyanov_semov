@@ -1,0 +1,50 @@
+# Local environment
+.env
+
+# Python cache/artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Training / reconstruction outputs
+output/**
+!output/.gitkeep
+
+# Local datasets (keep directory optional via .gitkeep)
+data/**
+!data/.gitkeep
+
+# Point clouds / media exports
+*.ply
+*.obj
+*.stl
+*.mp4
+*.avi
+*.mov
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.nav
+*.snm
+*.fls
+*.fdb_latexmk
+*.synctex.gz
