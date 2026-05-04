@@ -1,0 +1,20 @@
+root@d918-B550M-DS3H:/opt/gaussian-splatting# python3 train.py -s /workspace/data/garden --resolution 8 --densify_until_iter 9000 --densify_grad_threshold 0.0003
+Optimizing
+Output folder: ./output/3cd64394-0 [04/05 14:53:21]
+Tensorboard not available: not logging progress [04/05 14:53:21]
+Reading camera 185/185 [04/05 14:53:21]
+Loading Training Cameras [04/05 14:53:21]
+Loading Test Cameras [04/05 14:53:54]
+Number of points at initialisation :  143411 [04/05 14:53:54]
+Training progress:  23%|████████████████████████████                                                                                            | 7000/30000 [04:14<18:42, 20.49it/s, Loss=0.0373929, Depth Loss=0.0000000]
+[ITER 7000] Evaluating train: L1 0.02301706410944462 PSNR 29.18569793701172 [04/05 14:58:09]
+
+[ITER 7000] Saving Gaussians [04/05 14:58:09]
+Training progress: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 30000/30000 [23:15<00:00, 21.50it/s, Loss=0.0264907, Depth Loss=0.0000000]
+
+[ITER 30000] Evaluating train: L1 0.016665212251245978 PSNR 31.765238189697268 [04/05 15:17:09]
+
+[ITER 30000] Saving Gaussians [04/05 15:17:09]
+
+Training complete. [04/05 15:17:14]
+root@d918-B550M-DS3H:/opt/gaussian-splatting#

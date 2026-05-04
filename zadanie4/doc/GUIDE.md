@@ -286,14 +286,14 @@ SIBR_gaussianViewer_app -m output/<uuid>
 
 ### Viewer controls
 
-| Action | Control |
+**| Action | Control |
 |---|---|
 | Move | `W` `A` `S` `D` |
 | Move up/down | `Q` `E` |
 | Rotate | Right mouse button + drag |
 | Zoom | Mouse wheel |
 | Movement speed | `+` / `-` |
-| Close | `ESC` |
+| Close | `ESC` |**
 
 ---
 
